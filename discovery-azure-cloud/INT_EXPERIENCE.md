@@ -16,5 +16,11 @@ _Author: skill-advantage  · Created: 2026-04-02_
 ## Confirmed Working Configurations
 <!-- Added after successful runs: versions, settings, flags that work -->
 
+## Confirmed Working Configurations
+- az CLI 2.84.0, Python 3.9, openpyxl 3.1.5, requests 2.32.5 — confirmed working
+- `pip install openpyxl requests` installs to system Python 3.9 at `/Library/Frameworks/Python.framework/Versions/3.9/bin/python3.9`; `pip` (not `pip3`) silently does nothing — always use `pip3`
+- Interactive `az login` session already active; no service principal needed for personal subscription
+
 ## Execution Log
 <!-- Run [date] [region/env] — [status] [duration] -->
+Run 2026-04-02 eastus/Subscription-GBSHCWBPOC-MPN-EA-Dev-Test — clean. 9 RGs, 26 resources, $3.13 MTD cost. Cost Management API accessible.
