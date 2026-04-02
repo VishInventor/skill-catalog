@@ -24,3 +24,4 @@ _Author: skill-advantage  · Created: 2026-04-02_
 ## Execution Log
 <!-- Run [date] [region/env] — [status] [duration] -->
 Run 2026-04-02 eastus/Subscription-GBSHCWBPOC-MPN-EA-Dev-Test — clean. 9 RGs, 26 resources, $3.13 MTD cost. Cost Management API accessible.
+Run 2026-04-02 eastus/Subscription-GBSHCWBPOC-MPN-EA-Dev-Test — clean. 9 RGs, 22 resources, $3.1312 MTD cost. No VMs/App Services/AKS — power state enrichment skipped. Cost Management API accessible. 2 empty RGs noted (Agentic-AI, rg-payments-microservice-prod).
