@@ -8,13 +8,78 @@ _Author: Vishal Anand · Created: 2026-04-04_
 ---
 
 ## Issues & Fixes
-<!-- Claude writes here when you type: memory -->
+
+### Issue: `--enable-ad-only-auth false` not recognized by az sql server create
+- Symptom: `ERROR: unrecognized arguments: false` when running `az sql server create --enable-ad-only-auth false`
+- Root cause: Flag does not exist in Azure CLI 2.84.0; SQL auth is enabled by default when `--admin-user` and `--admin-password` are provided
+- Fix: Remove `--enable-ad-only-auth false` entirely from `az sql server create` command
+- Scope: Azure CLI 2.84.0 and likely all recent versions
+- Date: 2026-04-04
+
+### Issue: `--dapr-enabled true` not recognized by az containerapp create
+- Symptom: `ERROR: unrecognized arguments: --dapr-enabled true` during container app creation
+- Root cause: Dapr is NOT enabled via a flag on `az containerapp create` or `az containerapp update`; it requires a separate command
+- Fix: After creating the container app, run `az containerapp dapr enable --name <app> --resource-group <rg> --dapr-app-id <id> --dapr-app-port <port> --dapr-app-protocol http`
+- Scope: All environments
+- Date: 2026-04-04
+
+### Issue: SQL server name `sql-onlinestore-prod` globally taken
+- Symptom: `ERROR: (NameAlreadyExists) The name 'sql-onlinestore-prod.database.windows.net' already exists`
+- Root cause: Azure SQL server names are globally unique across all Azure subscriptions — the default name from Phase 1 was already taken by another tenant
+- Fix: Always generate a unique suffix: `SQL_SERVER_NAME="sql-onlinestore-$(openssl rand -hex 4)"` — do not rely on the Phase 1 default name being available
+- Scope: All environments
+- Date: 2026-04-04
+
+### Issue: Repo directory structure changed — node-app/python-app renamed
+- Symptom: Phase 1 WARN: `node-app/` and `python-app/` not found; Phase 4 service name assumptions invalid
+- Root cause: `Azure-Samples/container-apps-store-api-microservice` repo refactored directories from `node-app/`, `python-app/` to `node-service/`, `python-service/`, `go-service/`
+- Fix: Always shallow-clone and verify actual directory names before Phase 4. Map: `node-service` → node-app (port 3000), `python-service` → python-app (port 5000), `go-service` → go-app (port 8050). Container app names should use the short form: `node-app`, `python-app`, `go-app`
+- Scope: Repo HEAD sha ac6a0a4f and likely future commits
+- Date: 2026-04-04
+
+### Issue: Sample app uses Dapr state store (not Azure SQL) for persistence
+- Symptom: Phase 4 plan referenced SQL connection string injection into order-service; actual app uses `d.save_state(store_name='orders', ...)` via Dapr
+- Root cause: The `container-apps-store-api-microservice` sample stores orders in a Dapr state store named `orders` (originally Redis/CosmosDB backed), not ADO.NET/Azure SQL. Phase 3 SQL is provisioned per skill design but not consumed by the sample app as shipped.
+- Fix: Register a Dapr component named `orders` (not `statestore`) scoped to `python-app`. For a working demo, use `componentType: state.in-memory`. The SQL database from Phase 3 remains available for future custom wiring.
+- Scope: All environments with this repo version
+- Date: 2026-04-04
+
+### Issue: Dapr component directory is `dapr-components/local/`, not `deploy/components/`
+- Symptom: Phase 4 instructions reference `deploy/components/statestore.yaml` and `deploy/components/pubsub.yaml` which do not exist
+- Root cause: Repo refactor moved Dapr component definitions to `dapr-components/local/statestore.yaml`; the local statestore is Redis-based and not directly usable in ACA without modification
+- Fix: Do not use the repo's local Dapr component YAML for ACA deployment. Instead, write a fresh component YAML with `componentType: state.in-memory` (or Azure Redis/Storage for production) and apply via `az containerapp env dapr-component set`
+- Scope: Repo HEAD sha ac6a0a4f
+- Date: 2026-04-04
+
+### Issue: RBAC role query fails for federated IBM identities
+- Symptom: `Cannot find user or service principal in graph database for 'VIANAND2@ie.ibm.com'` when running `az role assignment list --assignee <email>`
+- Root cause: Federated/guest identities in IBM Azure tenants cannot be queried by UPN in the graph; the CLI falls back to nothing
+- Fix: Use `az ad signed-in-user show --query id -o tsv` to get the object ID, then use `--assignee <objectId>`. Alternatively, confirm access by verifying `az group list` returns results (read access implies at minimum Reader; resource group creation confirms Contributor).
+- Scope: IBM Azure tenants with federated identities
+- Date: 2026-04-04
 
 ## Region & Environment Notes
-<!-- Environment-specific lessons, quota issues, regional behaviour -->
+
+- **eastus**: ACA default domain DNS propagation takes 3–10 minutes after environment creation — not a gate blocker. Environment `kindmeadow-38edb9c2.eastus.azurecontainerapps.io` confirmed working.
+- **eastus**: 350 vCPU core quota available on subscription `a7ef2611` as of 2026-04-04 — no quota issues.
+- **eastus**: All required providers (`Microsoft.App`, `Microsoft.OperationalInsights`, `Microsoft.Sql`, `Microsoft.Insights`, `Microsoft.Network`, `Microsoft.ContainerRegistry`, `Microsoft.ServiceBus`) were already `Registered` — no registration waits needed.
 
 ## Confirmed Working Configurations
-<!-- Added after successful runs: versions, settings, flags that work -->
+
+- **Azure CLI version**: 2.84.0 — all commands work with the fixes documented above
+- **ACR build**: `az acr build --registry <name> --image <service>:latest --file <path>/Dockerfile <context>` — works without `--resource-group` if only one ACR in subscription; include `--resource-group` to be safe
+- **Dapr enable**: `az containerapp dapr enable --name <app> --resource-group <rg> --dapr-app-id <id> --dapr-app-port <port> --dapr-app-protocol http` — correct command; do NOT use `--dapr-enabled true` on create
+- **In-memory Dapr state store YAML** (working for demo):
+  ```yaml
+  componentType: state.in-memory
+  version: v1
+  metadata: []
+  scopes:
+    - python-app
+  ```
+- **Container app registry auth**: Use `--registry-username <acr-name> --registry-password <password>` (from `az acr credential show`). Do NOT use `--registry-identity system` unless managed identity is explicitly assigned to the ACR.
+- **SQL Advanced Threat Protection**: Use `az sql server advanced-threat-protection-setting update --resource-group <rg> --name <server> --state Enabled` (NOT `az security atp sql` which is unavailable in CLI 2.84.0)
 
 ## Execution Log
 <!-- Run [date] [region/env] — [status] [duration] -->
+Run 2026-04-04 eastus / subscription a7ef2611 — successful. Store live at https://node-app.kindmeadow-38edb9c2.eastus.azurecontainerapps.io. 6 fixes applied (see Issues & Fixes above).
