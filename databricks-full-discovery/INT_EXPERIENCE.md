@@ -10,11 +10,34 @@ _Author: Vishal Anand  · Created: 2026-04-04_
 ## Issues & Fixes
 <!-- Claude writes here when you type: memory -->
 
+### Issue: `/api/2.1/unity-catalog/metastores/summary` returns 400 "Invalid UUID string: summary"
+- Symptom: `GET /api/2.1/unity-catalog/metastores/summary` → HTTP 400 `{"error_code":"BAD_REQUEST","message":"Invalid UUID string: summary"}`
+- Root cause: This endpoint expects a UUID metastore ID in the path, not the literal word "summary". The path documented in the skill phase file is wrong for workspace-level tokens.
+- Fix: Use `GET /api/2.1/unity-catalog/current-metastore-assignment` instead — returns `workspace_id`, `metastore_id`, and `default_catalog_name` correctly for workspace-scoped PATs.
+- Scope: Azure Databricks workspace with PAT auth (workspace-scoped token, not account admin)
+- Date: 2026-04-04
+
+### Issue: `GET /api/2.1/unity-catalog/metastores` returns 403 for non-account-admin users
+- Symptom: `GET /api/2.1/unity-catalog/metastores` → HTTP 403 `PERMISSION_DENIED: User is not an account admin for Account.`
+- Root cause: Listing all metastores is an account-admin-only operation. Workspace-level PATs do not have this privilege.
+- Fix: Skip this call entirely for workspace-scoped tokens. Use `current-metastore-assignment` for metastore ID, then `GET /api/2.1/unity-catalog/catalogs` directly to enumerate catalogs. No need for the metastores list endpoint in single-workspace discovery.
+- Scope: All environments where caller is not Databricks account admin
+- Date: 2026-04-04
+
 ## Region & Environment Notes
 <!-- Environment-specific lessons, quota issues, regional behaviour -->
 
 ## Confirmed Working Configurations
 <!-- Added after successful runs: versions, settings, flags that work -->
 
+- Auth: PAT (workspace-scoped) works for all workspace-level APIs. Account-level APIs (workspace list, metastore list) require account admin — fall back gracefully to `SINGLE_WORKSPACE` mode.
+- Metastore check: `GET /api/2.1/unity-catalog/current-metastore-assignment` — confirmed working for PAT, returns `metastore_id` and `default_catalog_name`.
+- Catalog list: `GET /api/2.1/unity-catalog/catalogs` — returns all 4 catalogs including `system` (accessible with this token despite being restricted in some envs).
+- Lineage API: `GET /api/2.0/lineage-tracking/table-lineage` — accessible but returned 0 results (lineage tracking may not be enabled or no historical runs). Do not treat zero results as an error.
+- Genie Spaces: `GET /api/2.0/genie/spaces` — confirmed working, returned 3 spaces.
+- DLT Pipelines: `GET /api/2.0/pipelines` — returns `statuses[]` array (not `pipelines[]`), confirmed.
+
 ## Execution Log
 <!-- Run [date] [region/env] — [status] [duration] -->
+
+Run 2026-04-04 Azure/eastus (adb-7405613626241519) — complete. 127 entities, 122 relationships, 101 tables, 2 DLT pipelines, 3 Genie spaces. 2 API fixes applied (metastore summary endpoint, metastore list 403).
