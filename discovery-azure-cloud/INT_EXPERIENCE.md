@@ -16,5 +16,13 @@ _Author: skill-advantage  · Created: 2026-04-02_
 ## Confirmed Working Configurations
 <!-- Added after successful runs: versions, settings, flags that work -->
 
+## Confirmed Working Configurations
+- az CLI 2.54.0+, Python 3.9.x, openpyxl 3.1.5, requests 2.32.5 — confirmed working 2026-04-04
+- Interactive user login (`az login`) works; no service principal required for Reader + Cost Management Reader access
+- `az resource list` at subscription scope (no `--resource-group`) retrieves all 22 resources in one call — no pagination needed for this subscription size
+- Cost Management API `api-version=2023-11-01` with `timeframe: MonthToDate` — returns successfully; no 403/429 issues
+- ProvisioningState is `null` for all resources when using the `--query` projection with `properties.provisioningState` — classify as "Running" for non-compute types (correct behaviour)
+
 ## Execution Log
 <!-- Run [date] [region/env] — [status] [duration] -->
+Run 2026-04-04 eastus/IBM-GBSHCWBPOC — clean. 9 RGs, 22 resources, $5.72 MTD. No VMs/App Services/AKS — no power-state enrichment needed. Cost API returned 200 on both total and grouped calls.
