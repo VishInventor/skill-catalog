@@ -26,3 +26,11 @@ _Author: skill-advantage  · Created: 2026-04-02_
 ## Execution Log
 <!-- Run [date] [region/env] — [status] [duration] -->
 Run 2026-04-04 eastus/IBM-GBSHCWBPOC — clean. 9 RGs, 22 resources, $5.72 MTD. No VMs/App Services/AKS — no power-state enrichment needed. Cost API returned 200 on both total and grouped calls.
+Run 2026-04-04 eastus/IBM-GBSHCWBPOC — clean. 9 RGs, 22 resources, $5.77 MTD. Cost API 200 on both calls. No power-state enrichment needed (no VMs/App Services/AKS).
+
+### Issue: Cost charges appear for resource group with zero active resources
+- Symptom: `rg-payments-microservice-prod` returned $0.65 MTD cost (Container Registry, Key Vault, SQL Server) but `az resource list` returned zero resources for that RG.
+- Root cause: Resources were deleted within the current billing period — Azure Cost Management continues to report costs for deleted resources until the billing cycle closes. `az resource list` only returns currently existing resources.
+- Fix: No fix needed — this is expected Azure billing behaviour. Flag it in the Summary sheet note and do not treat it as a data error or skip the RG from the Cost Breakdown sheet.
+- Scope: All environments — any RG where resources are deleted mid-month will show this pattern.
+- Date: 2026-04-04
