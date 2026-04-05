@@ -96,3 +96,4 @@ _Author: Vishal Anand · Created: 2026-04-04_
 <!-- Run [date] [region/env] — [status] [duration] -->
 Run 2026-04-04 eastus / subscription a7ef2611 — successful. Store live at https://node-app.kindmeadow-38edb9c2.eastus.azurecontainerapps.io. 6 fixes applied (see Issues & Fixes above).
 Run 2026-04-05 eastus / subscription a7ef2611 — successful. Store live at https://node-app.greensand-5ae7b699.eastus.azurecontainerapps.io. All prior fixes confirmed working. 2 new issues recorded above.
+Run 2026-04-05 eastus / subscription a7ef2611 — successful. Store live at https://node-app.orangedesert-5d6c3e9f.eastus.azurecontainerapps.io. All prior fixes confirmed working. No new issues.
