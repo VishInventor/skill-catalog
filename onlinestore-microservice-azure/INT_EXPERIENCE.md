@@ -80,6 +80,19 @@ _Author: Vishal Anand · Created: 2026-04-04_
 - **Container app registry auth**: Use `--registry-username <acr-name> --registry-password <password>` (from `az acr credential show`). Do NOT use `--registry-identity system` unless managed identity is explicitly assigned to the ACR.
 - **SQL Advanced Threat Protection**: Use `az sql server advanced-threat-protection-setting update --resource-group <rg> --name <server> --state Enabled` (NOT `az security atp sql` which is unavailable in CLI 2.84.0)
 
+### Issue: `az containerapp create` output piped to `python3 -c json.load` causes JSONDecodeError
+- Symptom: `JSONDecodeError: Expecting value` when piping `az containerapp create --output json` to a python3 inline JSON parser; exit code 1 despite the app being created successfully
+- Root cause: Azure CLI 2.84.0 emits spinner/progress characters (`/ Running ..|`) before the JSON block when stdout is a pipe; the python3 parser receives non-JSON prefix bytes
+- Fix: Do not pipe `az containerapp create` output to a python3 JSON parser. Instead check status separately with `az containerapp show` after creation, or grep for `Running` / `Succeeded` without JSON parsing
+- Scope: Azure CLI 2.84.0, all environments
+
+### Issue: Local machine IP blocked by SQL firewall during Phase 3 connectivity test
+- Symptom: `sqlcmd` returns `Cannot open server … Client with IP address '86.40.17.224' is not allowed` during connectivity test
+- Root cause: Phase 3 only adds `AllowAzureServices` and `ContainerAppsEgressRule` — the CLI host's own IP is not in the allowlist
+- Fix: Add a `LocalAgentRule` firewall rule for the agent's current public IP before running the `sqlcmd` connectivity test. Use `az sql server firewall-rule create --name LocalAgentRule --start-ip-address <ip> --end-ip-address <ip>`. The IP appears in the error message.
+- Scope: All environments where sqlcmd test runs from a local/agent machine
+
 ## Execution Log
 <!-- Run [date] [region/env] — [status] [duration] -->
 Run 2026-04-04 eastus / subscription a7ef2611 — successful. Store live at https://node-app.kindmeadow-38edb9c2.eastus.azurecontainerapps.io. 6 fixes applied (see Issues & Fixes above).
+Run 2026-04-05 eastus / subscription a7ef2611 — successful. Store live at https://node-app.greensand-5ae7b699.eastus.azurecontainerapps.io. All prior fixes confirmed working. 2 new issues recorded above.
